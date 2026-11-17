@@ -10,6 +10,9 @@ DEFAULT_PALETTE = [(90, 160, 220), (190, 120, 70), (100, 210, 140)]
 KEY_HOPS = {pygame.K_LEFT: (-1, -1), pygame.K_UP: (-1, 0), pygame.K_DOWN: (1, 0), pygame.K_RIGHT: (1, 1)}
 
 
+COMPLETED_FLASHES = {}  # maps (row, col) to remaining flash duration
+
+
 # Curated dynamic palettes for progressive levels (unpainted -> stage 1 -> target)
 PALETTES = [
     [(90, 160, 220), (210, 130, 60), (100, 220, 140)],
@@ -29,7 +32,9 @@ def cube_palette(level):
 
 def on_cube_completed(cell):
     """Called when a cube first reaches its target colour; add a flash, sound, or bonus here."""
-    pass
+    COMPLETED_FLASHES[cell] = 0.45  # Flash duration in seconds
+    if hasattr(Game, "current") and Game.current:
+        Game.current.score += 75  # Award completion bonus points
 
 
 def bonus_life_threshold():
@@ -89,7 +94,10 @@ class Hopper:
 
 
 class Game:
+    current = None
+
     def __init__(self):
+        Game.current = self
         self.font = pygame.font.Font(None, 26)
         self.level, self.score, self.lives = 1, 0, 3
         self.reset()
@@ -144,6 +152,10 @@ class Game:
         landed = self.player.update(dt)
         if landed:
             self.paint(landed)
+        for cell in list(COMPLETED_FLASHES.keys()):
+            COMPLETED_FLASHES[cell] -= dt
+            if COMPLETED_FLASHES[cell] <= 0:
+                del COMPLETED_FLASHES[cell]
         threshold = bonus_life_threshold()
         if threshold and self.score // threshold > self.bonus_awarded:
             self.bonus_awarded = self.score // threshold
@@ -183,8 +195,18 @@ class Game:
         right = [top[1], top[2], (cx, cy + CUBE_H / 2 + SIDE), (cx + CUBE_W / 2, cy + SIDE)]
         pygame.draw.polygon(screen, shade(DEFAULT_PALETTE[0], 0.45), left)
         pygame.draw.polygon(screen, shade(DEFAULT_PALETTE[0], 0.3), right)
-        pygame.draw.polygon(screen, color, top)
-        pygame.draw.polygon(screen, (240, 240, 240), top, 1)
+        if cell in COMPLETED_FLASHES and COMPLETED_FLASHES[cell] > 0:
+            factor = COMPLETED_FLASHES[cell] / 0.45
+            flash_color = (
+                min(255, int(color[0] + (255 - color[0]) * factor)),
+                min(255, int(color[1] + (255 - color[1]) * factor)),
+                min(255, int(color[2] + (255 - color[2]) * factor)),
+            )
+            pygame.draw.polygon(screen, flash_color, top)
+            pygame.draw.polygon(screen, (255, 255, 255), top, 2)
+        else:
+            pygame.draw.polygon(screen, color, top)
+            pygame.draw.polygon(screen, (240, 240, 240), top, 1)
 
     def draw(self, screen):
         screen.fill((18, 20, 38))
