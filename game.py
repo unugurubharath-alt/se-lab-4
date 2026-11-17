@@ -10,9 +10,21 @@ DEFAULT_PALETTE = [(90, 160, 220), (190, 120, 70), (100, 210, 140)]
 KEY_HOPS = {pygame.K_LEFT: (-1, -1), pygame.K_UP: (-1, 0), pygame.K_DOWN: (1, 0), pygame.K_RIGHT: (1, 1)}
 
 
+# Curated dynamic palettes for progressive levels (unpainted -> stage 1 -> target)
+PALETTES = [
+    [(90, 160, 220), (210, 130, 60), (100, 220, 140)],
+    [(125, 80, 185), (240, 70, 145), (255, 215, 60)],
+    [(40, 95, 165), (45, 205, 215), (215, 245, 255)],
+    [(35, 125, 85), (85, 220, 115), (250, 195, 55)],
+    [(90, 95, 115), (240, 90, 45), (255, 230, 85)],
+]
+
+
 def cube_palette(level):
     """Return a list of TARGET + 1 (r, g, b) colours for the cube stages, or None for the default."""
-    pass
+    if level is None or level < 1:
+        return DEFAULT_PALETTE
+    return PALETTES[(level - 1) % len(PALETTES)]
 
 
 def on_cube_completed(cell):
